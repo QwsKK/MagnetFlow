@@ -1,0 +1,23 @@
+# MagnetFlow 运行依赖（采集 + 字幕流水线共用一个环境）
+# 安装建议搭配国内镜像源，例如：
+#   .venv\Scripts\python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+#
+# 说明：转写+翻译由外部引擎（AI_src infer.exe）完成，它自带模型与 CUDA 运行时，
+#       本项目无需任何 AI 依赖。
+
+# --- HTTP / 解析 ---
+requests>=2.31.0
+urllib3>=2.0.0
+beautifulsoup4>=4.12.0
+
+# --- 配置 ---
+PyYAML>=6.0
+ruamel.yaml>=0.18        # Web 控制台保存配置用的「外科手术式写回」
+
+# --- Web 可视化控制台（主界面）---
+fastapi>=0.115
+uvicorn[standard]>=0.30
+
+# --- 推送 115（可选，界面里没装也能跑采集和字幕）---
+# 注意：p115client 实际版本线是 0.0.9.x（且要求 Python 3.12+），不要写 >=0.9
+p115client>=0.0.9

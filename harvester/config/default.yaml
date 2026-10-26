@@ -1,0 +1,30 @@
+# 全局默认配置：站点配置里没写的字段，都会回落到这里。
+# 一般不需要改，除非你想统一调整限速、超时或输出格式。
+
+request:
+  timeout: 15
+  # 每次请求之间的随机等待区间（秒）。对目标站点客气一点，别把自己 IP 送进黑名单。
+  delay:
+  - 1.0
+  - 2.5
+  retries: 3
+  encoding: auto          # auto | utf-8 | gbk | ...
+  headers:
+    User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    Accept-Language: "zh-CN,zh;q=0.9"
+
+output:
+  dir: out
+  # json = 完整结构化数据，csv = 表格，txt = 纯磁力列表（每行一条，方便批量导入其他工具）
+  formats: [json, csv, txt]
+  write_latest: true      # 额外写一份 latest.json / latest.txt 覆盖式快照
+  # 是否把每个详情页的完整 HTML 存成 json（out/<site>/detail-<时间戳>.json + latest_detail.json）
+  # 调试选择器时很有用，但文件会比较大，默认关闭，需要的站点在 sites/*.yaml 里单独打开
+  dump_detail_html: false
+
+state:
+  db: state/harvest.db    # SQLite：infohash 去重与增量记录，pushed 字段为后续接入 115 预留
+
+log:
+  level: INFO
+  file: logs/harvest.log

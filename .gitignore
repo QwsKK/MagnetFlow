@@ -1,0 +1,48 @@
+# ---------------------------------------------------------------- 运行环境
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# ---------------------------------------------------------------- 本地配置
+# 只提交 *.example.yaml —— 真实配置里通常含 Cookie / 密码 / 内网地址
+config/push115.yaml
+subtitle/config.yaml
+subtitle/config.yaml.bak
+harvester/sites/*.yaml
+!harvester/sites/example.yaml
+
+# ---------------------------------------------------------------- 运行数据
+logs/
+harvester/logs/
+subtitle/logs/
+harvester/state/
+harvester/out/
+subtitle/data/
+subtitle/work/
+subtitle/models/
+subtitle/bin/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# ---------------------------------------------------------------- 内部资料 / 备份
+.workbuddy/
+HANDOFF.md
+subtitle/115*.md
+*.bak
+*.bak-*
+*.orig
+
+# ---------------------------------------------------------------- 系统垃圾
+Thumbs.db
+.DS_Store
+desktop.ini
+1.html
+
+# 内部调试脚本（依赖本机路径）
+tests/api_smoke_test.sh

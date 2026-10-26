@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MagnetFlow 控制台</title>
+<meta name="description" content="MagnetFlow：磁力采集 / 推送 115 / 字幕流水线 的本地控制台">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="layout" id="app">
+
+  <!-- 侧边导航：图标全部内联 SVG，窄屏折叠为 56px 只留图标 -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5.5 19V11a6.5 6.5 0 0 1 13 0v8"/>
+          <path d="M5.5 14h3.2M15.3 14h3.2"/>
+          <path d="M9.6 20.6h4.8"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">MagnetFlow</span>
+        <span class="brand-sub">本地磁力自动化控制台</span>
+      </div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="nav-side-foot">
+      <div class="nav-foot-line" id="foot-app">MagnetFlow</div>
+      <div class="nav-foot-line" id="foot-disk"></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <!-- 顶栏：视图标题 + 运行中任务徽标 -->
+    <header class="topbar">
+      <div class="topbar-title" id="view-title">总览</div>
+      <div class="topbar-sub" id="view-sub"></div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-right">
+        <span class="run-badge" id="run-badge" title="正在运行的后台任务"><i class="dot"></i><span id="run-badge-text">检查中…</span></span>
+        <span class="hide-sm" id="top-env"></span>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="view" id="view" aria-live="polite"></section>
+    </main>
+  </div>
+</div>
+
+<div id="toast-root" aria-live="polite"></div>
+
+<div id="modal-root" class="hidden" role="dialog" aria-modal="true">
+  <div class="modal-mask" id="modal-mask"></div>
+  <div class="modal" id="modal-box"></div>
+</div>
+
+<noscript><p style="padding:24px">MagnetFlow 控制台需要启用 JavaScript。</p></noscript>
+<script src="./app.js" defer></script>
+</body>
+</html>

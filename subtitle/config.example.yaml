@@ -1,0 +1,176 @@
+# =============================================================================
+#  115Translate 主配置
+#
+#  用法：复制本文件为 config.yaml，只改需要改的部分（缺失字段会自动用默认值）。
+#  密码等敏感信息支持 ${环境变量名} 占位符。
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+#  WebDAV（OpenList / Alist 提供的 DAV 地址）
+# -----------------------------------------------------------------------------
+webdav:
+  base_url: "http://192.168.1.100:5244/dav"   # OpenList 的 WebDAV 根，不要带尾部斜杠
+  username: "admin"                            # 或用 ${OPENLIST_USER}
+  password: "your_password"                    # 或用 ${OPENLIST_PASS}
+  root: "/电影"                                # 片库目录，脚本只扫这里
+  auth: auto                                   # auto | basic | digest | none
+  verify_ssl: false
+  timeout: 60
+  max_retries: 3
+
+# -----------------------------------------------------------------------------
+#  扫描规则
+# -----------------------------------------------------------------------------
+scan:
+  video_exts: [".mkv", ".mp4", ".avi", ".mov", ".m4v", ".ts", ".webm"]
+  subtitle_suffix: ".zh.srt"      # 存在同名+此后缀的字幕就跳过
+  min_size_mb: 100                # 小于此体积的视为预告片/样片，跳过
+  max_depth: 8                    # 递归深度上限
+  exclude_dirs: ["@eaDir", ".trashed", "Extras", "extras", "Sample", "Behind The Scenes"]
+  exclude_name_keywords: []       # 文件名含这些词就跳过，如 ["trailer", "preview"]
+
+# -----------------------------------------------------------------------------
+#  工作目录（相对本项目根目录，也可以填绝对路径）
+# -----------------------------------------------------------------------------
+workspace:
+  temp_dir: "work/tmp"            # 临时音轨 / 整片下载缓存，转写完自动清
+  subtitle_dir: "work/subs"       # 中间产物 .en.srt / .zh.srt
+  state_db: "data/state.db"       # 处理进度与失败记录
+  keep_audio: false               # 排错时设 true，保留抽取出的 WAV
+  keep_en_srt: true               # 保留英文原文字幕，翻译失败重跑时不用重新转写
+  record_dir: "work/records"      # 每部翻译完在这里留一份「原文 -> 中译」对照记录（Markdown）
+
+# -----------------------------------------------------------------------------
+#  外部工具
+# -----------------------------------------------------------------------------
+tools:
+  ffmpeg: "bin/ffmpeg/ffmpeg.exe"
+  ffprobe: "bin/ffmpeg/ffprobe.exe"
+  fallback_to_path: true          # 上面的路径不存在时，用 PATH 里的 ffmpeg
+
+# -----------------------------------------------------------------------------
+#  音轨抽取
+# -----------------------------------------------------------------------------
+audio:
+  sample_rate: 16000              # Whisper 要求 16kHz
+  channels: 1                     # 单声道
+  strategy: auto                  # auto | stream | download
+                                  #   stream   : ffmpeg 直连 WebDAV 边下边抽（首选）
+                                  #   download : 整片下载后再抽（流式卡死时自动兜底）
+                                  #   auto     : 先 stream，失败自动切 download
+  track_index: null               # 指定第几条音轨（从 0 起）；null = 自动挑
+  prefer_languages: ["eng", "en", "jpn", "ja", "kor", "ko"]   # 优先挑这些语言的音轨
+  avoid_languages: ["chi", "zho", "zh", "yue", "cmn"]         # 尽量别挑（一般是国语配音轨）
+  stall_timeout_s: 180            # 流式抽取：输出 180s 没增长就判定卡死
+  stream_max_duration_s: 7200     # 单部抽取总时限（2 小时）
+  download_retries: 2
+
+# -----------------------------------------------------------------------------
+#  语音转写（faster-whisper）
+# -----------------------------------------------------------------------------
+asr:
+  model: "models/faster-whisper-large-v3"   # 本地目录；也可以直接写 "large-v3" / "medium" / "small"
+  device: cuda                              # cuda | cpu
+  compute_type: int8                        # int8（省显存）| int8_float16（快）| float16
+  cpu_threads: 8
+  language: ""                              # 空 = 自动检测；建议固定，如 "ja"
+                                            # （关闭 VAD 后开头是音乐时自动检测易误判）
+  vad_filter: false                         # 默认关闭：Silero VAD 会把喘息/低语类人声判为
+                                            # 非语音直接丢弃，导致大量台词漏转。真无声片可开
+  vad_min_silence_ms: 500
+  beam_size: 5
+  word_timestamps: true           # 词级时间戳更准；但 kotoba-whisper 蒸馏模型必须设 false（原生崩溃）
+  beam_size: 5
+  condition_on_previous_text: false         # 关掉可显著降低长片复读幻觉
+  temperature: 0.0
+  max_line_chars: 40                        # 单条字幕最大字数，超了会按标点切分
+  max_line_duration_s: 7.0
+  max_cue_duration_s: 20.0
+  filter_hallucination: true
+  filter_nonlinguistic: true      # 纯声音假名行（呻吟/喘息/呼吸）整行丢弃，不送 LLM
+  remove_filler_lines: true       # 纯填充词行（あのー…ええと…）整行丢弃
+
+# -----------------------------------------------------------------------------
+#  本地翻译模型（llama.cpp + GGUF，任意兼容模型都可以）
+# -----------------------------------------------------------------------------
+llm:
+  model_path: "models/qwen3-4b.i1-Q4_K_M.gguf"
+  server:
+    exe: "bin/llama.cpp/llama-server.exe"
+    host: "127.0.0.1"
+    port: 8080
+    ctx_size: 8192                # 8GB 显存下够用；加大批次可以调到 16384
+    gpu_layers: -1                # -1 = 全部 offload 到 GPU
+    flash_attention: true
+    threads: 0                    # 0 = 自动
+    reasoning_budget: 0           # Qwen3 关闭思考输出，翻译能快一倍
+    extra_args: []
+    startup_timeout_s: 300        # 首次加载模型需要几十秒
+    idle_shutdown: true           # 翻译完自动关服务，把显存还给显卡
+  api:
+    base_url: ""                  # 空 = 用上面 server 段推导成 http://127.0.0.1:8080/v1
+                                  # 换云端 API 时填 https://api.deepseek.com/v1 之类
+    api_key: "sk-local"           # 本地 llama.cpp 随便填；云端填真 key
+    model: "local"
+    timeout: 900
+    temperature: 0.3
+    top_p: 0.9
+    top_k: 40
+    max_tokens: 4096
+    enable_thinking: false        # 关键：关掉 thinking，否则翻译慢一倍
+
+# -----------------------------------------------------------------------------
+#  翻译策略
+# -----------------------------------------------------------------------------
+translate:
+  batch_lines: 40                 # 每批最多行数；实际会按 ctx_size 自动收紧
+                                  # （8K 窗口 -> 11 行/批，借鉴 WhisperJAV 的 token 预算）
+  batch_max_chars: 2000           # 或累计 2000 字，先到先切
+  max_retries: 3                  # 行数校验失败后的重试次数
+  retry_batch_lines: 12           # 重试时切小批次（预留字段）
+  on_failure: keep_original       # keep_original（保留原文，不破坏时间轴）| abort
+  context_tail_lines: 3           # 带上几句前文，稳定人称和语气
+  scene_hint: ""                  # 可选：给模型的影片背景，如 "近未来科幻片，女主是黑客"
+  preserve_terms: []              # 不译的专有名词，如 ["Neo", "Trinity"]
+  scene_gap: 15.0                 # 相邻字幕间隔超过此秒数视为换场，强制断批（0 = 关闭）
+  use_scene_context: true         # 每批翻完输出 <summary>/<scene> 滚动给下一批
+
+# -----------------------------------------------------------------------------
+#  输出
+# -----------------------------------------------------------------------------
+output:
+  encoding: "utf-8-sig"           # 带 BOM，各类播放器兼容性最好
+  line_ending: "crlf"             # SRT 标准用 CRLF
+  write_en_srt: false             # 额外上传一份英文原文字幕
+
+# -----------------------------------------------------------------------------
+#  流水线
+# -----------------------------------------------------------------------------
+pipeline:
+  max_items_per_run: 0            # 每轮最多处理几部（0 = 不限，挂机推荐设 15~20）
+  max_attempts: 3                 # 单部最多失败几次，超过就标记放弃
+  max_consecutive_failures: 3     # 连续失败这么多部就中止本轮（避免空转一晚）
+  retry_failed: true
+  upload_immediately: true        # 边产边传：一部转写完立刻回写一部，不等整批跑完
+  partial_upload_interval_s: 60   # 转写过程中每产生新字幕满 60 秒就增量回填一次到 115
+                                  # （115 是整文件覆盖上传；0 = 关闭增量回填，只保留完成即回写）
+  download_ahead: true            # 预下载：趁当前影片转写（GPU）时，后台提前下载下一部整片，
+                                  # GPU 不再等下一部的下载时间；false = 恢复纯串行
+  shutdown_after_run: false       # 跑完自动关机（真·睡前挂机）
+  shutdown_delay_s: 60
+
+# -----------------------------------------------------------------------------
+#  通知（可选）
+# -----------------------------------------------------------------------------
+notify:
+  enabled: false
+  serverchan_key: ""              # Server酱 Turbo 的 SendKey
+  bark_url: ""                    # 如 https://api.day.app/xxxxxx
+
+# -----------------------------------------------------------------------------
+#  日志
+# -----------------------------------------------------------------------------
+logging:
+  level: "INFO"
+  file: "logs/run.log"
+  console: true

@@ -1,0 +1,85 @@
+# 站点规则模板 —— 复制一份改名（例如 sites/mysite.yaml），填好 selector 就能跑。
+#
+# 最小可用配置只需要 4 个字段：
+#   request.base_url
+#   list.url_template  +  list.item_selector
+#   detail.magnet_attr_selectors
+# 其余都有默认值，可以不写。
+#
+# 免责声明：请只在你拥有合法访问权限的站点上使用，并遵守目标站点的服务条款。
+
+name: example            # 站点标识，用于输出目录和数据库分站记录
+enabled: false           # 改成 true 才会被采集（示例文件默认关闭）
+
+request:
+  base_url: "https://example.com"
+  # 需要登录才能看的站点，把浏览器里的 Cookie 原样贴到这里即可：
+  # headers:
+  #   Cookie: "uid=xxx; token=yyy"
+  # 国内部分老站是 GBK，遇到乱码把这里改成 gbk
+  encoding: utf-8
+
+# ---------------------------------------------------------------- 列表页
+list:
+  # 翻页：把页码出现的位置写成 {page}
+  url_template: "https://example.com/vod/list/page/{page}.html"
+  # 页码闭区间 [start, end]。命令行 --pages 可临时覆盖
+  pages: [1, 3]
+
+  # 搜索型站点：关键词位置写 {keyword}，采集时会用「关键词」或下面的 keyword 替换
+  # url_template: "https://example.com/search/{keyword}/{page}"
+  # keyword: "keyword"
+
+  # 如果站点不方便用页码模板，也可以直接罗列：
+  # urls:
+  #   - "https://example.com/new.html"
+  #   - "https://example.com/hot.html"
+
+  # 列表页里指向详情页的 <a> 标签选择器（CSS 选择器）
+  item_selector: "div.vod-list > div.item > a"
+  item_attr: href        # 取哪个属性当链接，默认 href
+  # 列表项标题选择器，写不出来的话留空，脚本会退回用 <a> 的文本
+  item_title_selector: ""
+
+# ---------------------------------------------------------------- 详情页
+detail:
+  # 优先从这些元素的 href 里取磁力（最干净，不会被截断）
+  magnet_attr_selectors:
+    - "a[href^='magnet:']"
+    - "div.download-box a"
+
+  # 上面取不到时的兜底：在整个页面文本 / 原始 HTML 里正则扫 magnet:
+  fallback_to_regex: true
+
+  # 一个详情页常挂多条磁力（不同清晰度/字幕）：true = 只入库体积最大的一条
+  pick_largest: true
+
+  # 每条磁力自己的体积所在单元格（相对该磁力所在的 <tr>）。
+  # 留空则依次猜测：该 <a> 自身文本 -> 整行文本 -> 页面级体积。
+  magnet_size_selector: ""
+
+  # 详情页标题选择器，取不到就退回列表页标题
+  title_selector: "h1.title"
+  # 体积所在的区域，留空则在整个页面里找第一个形如 "12.3GB" 的值
+  size_selector: ""
+
+# ---------------------------------------------------------------- 过滤
+filter:
+  # 标题里必须包含任意一个（空 = 不过滤）。命令行 --keyword 会追加到这里
+  include_keywords: []
+  # 标题里含有任意一个就丢弃，用来排掉预告片、样片、广告
+  exclude_keywords: ["trailer", "sample", "广告"]
+  # 允许的扩展名，从磁力 dn 参数或标题里识别
+  allowed_extensions: [mkv, mp4, ts, iso, m2ts, avi, mov, rmvb, wmv, flv, webm]
+  # 体积区间（GB）。0 表示不限制
+  min_size_gb: 0
+  max_size_gb: 0
+  # 识别不出体积时怎么处理：keep = 保留，drop = 丢弃
+  unknown_size: keep
+
+# ---------------------------------------------------------------- 输出
+output:
+  dir: out
+  formats: [json, csv, txt]
+  # 需要留存详情页原始 HTML 时改成 true，会额外输出 detail-<时间戳>.json / latest_detail.json
+  dump_detail_html: false
